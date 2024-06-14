@@ -1,0 +1,8 @@
+.
+├── config.cfg
+├── go.mod
+├── go.sum
+├── main.go
+└── tree.txt
+
+1 directory, 5 files
