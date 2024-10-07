@@ -1,12 +1,9 @@
 package main
 
 import (
-	"flag"
 	"fmt"
-	"log"
 
 	"github.com/quickfixgo/quickfix"
-	"github.com/quickfixgo/quickfix/config"
 )
 
 type TradeClientApplication interface {
@@ -53,47 +50,29 @@ func (t *MyTradeClient) FromApp(msg *quickfix.Message, sessionID quickfix.Sessio
 }
 
 func main() {
-	// Parse command-line flags
-	var cnfgFile string
-	flag.StringVar(&cnfgFile, "config", "", "Path to configuration file")
-	flag.Parse()
-
-	if cnfgFile == "" {
-		log.Fatal("No configuration file provided. Use -config option to specify one.")
-	}
-
-	// Read and parse the configuration file
-	cfg, err := config.BeginString.
+	cnfgFile := "./config.cfg"
+	settings, err := quickfix.NewSessionSettingsFromFile(cnfgFile)
 	if err != nil {
-		log.Fatalf("Error parsing configuration file: %v", err)
+		fmt.Printf("Error loading session settings from file: %s\n", err)
+		return
 	}
 
-	// Initialize QuickFIX with the parsed configuration
-	settings := quickfix.NewSettings()
-	err = cfg.Configure(settings)
-	if err != nil {
-		log.Fatalf("Error configuring QuickFIX settings: %v", err)
-	}
-
+	application := new(MyTradeClient)
 	storeFactory := quickfix.NewMemoryStoreFactory()
-	logFactory, err := quickfix.NewFileLogFactory(settings)
+	logFactory := quickfix.NewScreenLogFactory(settings)
+	initiator, err := quickfix.NewInitiator(application, storeFactory, settings, logFactory)
 	if err != nil {
-		log.Fatalf("Error creating log factory: %v", err)
-	}
-
-	app := &MyTradeClient{}
-
-	initiator, err := quickfix.NewInitiator(app, storeFactory, settings, logFactory)
-	if err != nil {
-		log.Fatalf("Error creating initiator: %v", err)
+		fmt.Printf("Unable to create initiator: %s\n", err)
+		return
 	}
 
 	err = initiator.Start()
 	if err != nil {
-		log.Fatalf("Error starting initiator: %v", err)
+		fmt.Printf("Error starting initiator: %s\n", err)
+		return
 	}
 
-	// Wait for a condition to stop the initiator
-	// This example uses a simple block; replace with your logic
+	// Wait for a condition to stop the initiator (example: a signal or event)
+	// This can be implemented based on your application's requirements
 	select {}
 }
